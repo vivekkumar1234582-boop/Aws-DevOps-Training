@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -6,7 +7,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 git branch: 'master',
-                    url: 'https://github.com/vivekkumar1234582-boop/hello-world.git'
+                    url: 'https://github.com/vivekics/hello-world.git'
             }
         }
 
@@ -16,13 +17,14 @@ pipeline {
 
                 sh '''
                     echo "WAR files generated:"
-                    ls -lh webapp/target/webapp.war
+                    ls -lh webapp/target/*.war
                 '''
             }
         }
 
         stage('Deploy WAR to Tomcat') {
             steps {
+
                 echo 'Deploying WAR to Tomcat...'
 
                 sshPublisher(
@@ -32,14 +34,12 @@ pipeline {
 
                             transfers: [
                                 sshTransfer(
-                                    sourceFiles: 'webapp/target/webapp.war',
+                                    sourceFiles: 'webapp/target/*.war',
                                     removePrefix: 'webapp/target',
-                                    remoteDirectory: 'webapps',
-                                    execCommand: '''
-                                        sudo systemctl restart tomcat
-                                        sleep 5
-                                        sudo systemctl status tomcat --no-pager
-                                    '''
+                                    remoteDirectory: '/root/tomcat/webapps',
+                                    flatten: true,
+                                    cleanRemote: false,
+                                    makeEmptyDirs: false
                                 )
                             ],
 
@@ -47,17 +47,19 @@ pipeline {
                         )
                     ]
                 )
+
+                echo 'WAR deployment completed!'
             }
         }
     }
 
     post {
         success {
-            echo 'WAR deployment completed successfully!'
+            echo 'Build and deployment completed successfully!'
         }
 
         failure {
-            echo 'WAR deployment failed!'
+            echo 'Build or deployment failed!'
         }
     }
 }
